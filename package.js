@@ -1,0 +1,13 @@
+{
+  "name": "telegram-firebase-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "node-fetch": "^2.7.0",
+    "firebase-admin": "^12.0.0"
+  }
+}
