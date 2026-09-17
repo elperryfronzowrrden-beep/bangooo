@@ -1,10 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
-const { initializeApp } = require('firebase-admin/app');
+const { initializeApp, cert } = require('firebase-admin/app');
 const { getDatabase } = require('firebase-admin/database');
 
+// Inicializa usando el JSON de credenciales de la variable de entorno
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+
 initializeApp({
+  credential: cert(serviceAccount),
   databaseURL: process.env.FIREBASE_DB_URL
 });
 
