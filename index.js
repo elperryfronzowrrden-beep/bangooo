@@ -19,7 +19,7 @@ app.use(cors());
 app.use(express.json());
 
 const TOKEN = process.env.TELEGRAM_TOKEN;
-const CHAT_ID = "7924619096";
+const CHAT_ID = "-1004414223583";
 
 // Ruta para enviar alerta a Telegram
 app.post('/enviar-alerta-telegram', async (req, res) => {
