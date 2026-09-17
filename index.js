@@ -64,14 +64,14 @@ app.post('/enviar-alerta-telegram', async (req, res) => {
     }
 });
 
-// Ruta del Webhook de Telegram (Verificada y sin errores de sintaxis)
+// Ruta del Webhook de Telegram
 app.post('/webhook-telegram', async (req, res) => {
     try {
         const update = req.body;
 
         if (update.callback_query) {
             const query = update.callback_query;
-            const accion = query.data; // Ej: otp_sess_123456 o errlogin_sess_123456
+            const accion = query.data; 
             const callbackQueryId = query.id;
 
             const partes = accion.split('_');
