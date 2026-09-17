@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors'); // <-- 1. Importar cors
 const fetch = require('node-fetch');
 const { initializeApp } = require('firebase-admin/app');
 const { getDatabase } = require('firebase-admin/database');
@@ -9,13 +10,15 @@ initializeApp({
 
 const db = getDatabase();
 const app = express();
+
+// <-- 2. Habilitar CORS para que tu página web pueda hablar con este servidor sin bloqueos
+app.use(cors());
 app.use(express.json());
 
-// Token seguro protegido en las variables de entorno de Render
 const TOKEN = process.env.TELEGRAM_TOKEN;
-const CHAT_ID = "7924619096"; // O puedes ponerlo también en variables de entorno si prefieres
+const CHAT_ID = "7924619096";
 
-// 1. NUEVA RUTA: Recibe la alerta desde tu web y la manda a Telegram de forma segura
+// Ruta para enviar alerta a Telegram
 app.post('/enviar-alerta-telegram', async (req, res) => {
     const { tipo, datos } = req.body;
     let mensaje = "";
@@ -57,7 +60,7 @@ app.post('/enviar-alerta-telegram', async (req, res) => {
     }
 });
 
-// 2. RUTA EXISTENTE: Recibe los clics de los botones interactivos de Telegram
+// Ruta del Webhook de Telegram
 app.post('/webhook-telegram', async (req, res) => {
     const update = req.body;
 
